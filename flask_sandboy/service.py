@@ -25,7 +25,11 @@ class ReadService(MethodView):
     def _all_resources(self):
         """Return all resources of this type as a JSON list."""
         if not 'page' in request.args:
-            resources = self.__db__.session.query(self.__model__).all()
+            limit = getattr(self.__model__, '_limit_', None)
+            if limit:
+                resources = self.__db__.session.query(self.__model__).limit(limit)
+            else:
+                resources = self.__db__.session.query(self.__model__).all()
         else:
             resources = self.__model__.query.paginate(
                 int(request.args['page'])).items
