@@ -5,6 +5,7 @@ from flask.views import MethodView
 from flask_sandboy.models import verify_fields
 from flask_sandboy.exception import NotFoundException
 
+DEFAULT_LIMIT = 100
 
 class ReadService(MethodView):
     """Base class for all resources."""
@@ -24,17 +25,15 @@ class ReadService(MethodView):
 
     def _all_resources(self):
         """Return all resources of this type as a JSON list."""
+        limit = int(request.args.get('limit', DEFAULT_LIMIT))
+        # start = int(request.args.get('start', 0))
+        count = count = self.__db__.session.query(self.__model__).count()
         if not 'page' in request.args:
-            limit = getattr(self.__model__, '_limit_', None)
-            if limit:
-                resources = self.__db__.session.query(self.__model__).limit(limit)
-            else:
-                resources = self.__db__.session.query(self.__model__).all()
+            resources = self.__db__.session.query(self.__model__).limit(limit)
         else:
-            resources = self.__model__.query.paginate(
-                int(request.args['page'])).items
+            resources = self.__model__.query.paginate(page=int(request.args['page']), per_page=limit).items
         return jsonify(
-            {'resources': [resource.to_dict() for resource in resources]})
+            {'total':count, 'resources': [resource.to_dict() for resource in resources]})
 
     def _resource(self, resource_id):
         """Return resource represented by this *resource_id*."""
